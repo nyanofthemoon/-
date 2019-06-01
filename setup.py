@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-  name='nu',
+  name='0M',
   version='0.2.0',
   packages=['nu'],
   author='Nyan Of The Moon',
@@ -19,9 +19,7 @@ setup(
       'configparser',
       'redis',
       'hiredis',
-      'sense-hat',
-      'flask',
-      'pyopenssl'
+      'sense-hat'
   ],
   zip_safe=False
 )
