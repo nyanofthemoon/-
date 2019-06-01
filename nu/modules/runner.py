@@ -5,6 +5,8 @@ import threading
 from distutils.util import strtobool
 from time import sleep
 from nu import anki_vector
+from anki_vector.events import Events
+from anki_vector.user_intent import UserIntent, UserIntentEvent
 
 from .scheduler import Scheduler
 from .body import Executor
@@ -70,51 +72,50 @@ class Runner:
         return True
 
     def _sensorCallbackBodySenseAirborne(self):
-        is_airborne = self.executor.is_robot_stable_enough_to_move()
-        BodySenseAirborne.set(str(is_airborne))
-        if True == is_airborne:
-            BodySenseAirborne.publish(True)
+        is_airborne = not self.executor.is_robot_stable_enough_to_move()
+        if is_airborne == True:
+          BodySenseAirborne.publish(True)
     def _sensorCallbackBodySenseButtonPressed(self):
         is_robot_button_pressed = self.executor.is_robot_button_pressed()
-        BodySenseButtonPress.set(str(is_robot_button_pressed))
-        if True == is_robot_button_pressed:
+        if is_robot_button_pressed == True:
             BodySenseButtonPress.publish(True)
+    def _sensorCallbackBodySenseCalm(self):
+        is_robot_calm = self.executor.is_robot_calm()
+        if is_robot_calm == True:
+            BodySenseCalm.publish(True)
     def _sensorCallbackBodySenseCharging(self):
         is_robot_charging = self.executor.is_robot_charging()
-        BodySenseCharging.set(str(is_robot_charging))
-        if True == is_robot_charging:
+        if is_robot_charging == True:
             BodySenseCharging.publish(True)
     def _sensorCallbackBodySenseCliff(self):
         has_robot_detected_cliff = self.executor.has_robot_detected_cliff()
-        BodySenseCliff.set(str(has_robot_detected_cliff))
-        if True == has_robot_detected_cliff:
+        if has_robot_detected_cliff == True:
             BodySenseCliff.publish(True)
     def _sensorCallbackBodySenseCubeBatteryLow(self):
         is_cube_battery_low = self.executor.is_cube_battery_low()
-        BodySenseCubeBatteryLow.set(str(is_cube_battery_low))
-        if True == is_cube_battery_low:
+        if is_cube_battery_low == True:
             BodySenseCubeBatteryLow.publish(True)
     def _sensorCallbackBodySenseRobotBatteryLow(self):
         is_robot_battery_low = self.executor.is_robot_battery_low()
-        BodySenseRobotBatteryLow.set(str(is_robot_battery_low))
-        if True == is_robot_battery_low:
+        if is_robot_battery_low == True:
             BodySenseRobotBatteryLow.publish(True)
     def _sensorCallbackBodySenseTouch(self):
         is_being_touched = self.executor.is_robot_being_touched()
-        BodySenseTouch.set(str(is_being_touched))
-        if True == is_being_touched:
+        if is_being_touched == True:
             BodySenseTouch.publish(True)
     def _sensorCallbackBodySenseFalling(self):
         is_robot_falling = self.executor.is_robot_falling()
-        BodySenseFalling.set(str(is_robot_falling))
-        if True == is_robot_falling:
+        if is_robot_falling == True:
             BodySenseFalling.publish(True)
 
     def bindSensoryCallback(self, robot: anki_vector.robot.Robot, sensors):
+        sensoryEvent = threading.Event()
         if 'BodySenseAirborne' in sensors:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseAirborne')), self._sensorCallbackBodySenseAirborne)
         if 'BodySenseButtonPress' in sensors:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseButtonPress')), self._sensorCallbackBodySenseButtonPressed)
+        if 'BodySenseCalm' in sensors:
+            self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseCalm')), self._sensorCallbackBodySenseCalm)
         if 'BodySenseCliff' in sensors:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseCliff')), self._sensorCallbackBodySenseCliff)
         if 'BodySenseCharging' in sensors:
@@ -127,6 +128,10 @@ class Runner:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseRobotBatteryLow')), self._sensorCallbackBodySenseRobotBatteryLow)
         if 'BodySenseTouch' in sensors:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseTouch')), self._sensorCallbackBodySenseTouch)
+        if 'BodySenseUserIntent' in sensors:
+            robot.events.subscribe(sensorCallbackBodySenseUserIntent, Events.user_intent, sensoryEvent)
+        if 'BodySenseWakeWord' in sensors:
+            robot.events.subscribe(sensorCallbackBodySenseWakeWord, Events.user_intent, sensoryEvent)
 
     def unbindSensoryCallback(self):
         self.scheduler.empty()
@@ -185,20 +190,18 @@ def run_vector_program():
             ip=nuConfig.get('sdk', 'ip'),
             config=config,
             default_logging=False,
-            cache_animation_lists=True,
+            cache_animation_lists=False,
             behavior_activation_timeout=int(runnerConfig.get('options', 'BehaviorActivationTimeout')),
             enable_face_detection=True,
             estimate_facial_expression=True,
-            enable_audio_feed=False,  # not yet supported, requires_behavior_control=True
+            enable_audio_feed=True,
             enable_custom_object_detection=True,
             enable_nav_map_feed=False,
             show_viewer=showVisionViewer,
             show_3d_viewer=showNavigationViewer,
         )
-
         robot.connect()
         vector_connect_callback(robot)
-
 
     except anki_vector.exceptions.VectorConnectionException as e:
         logger.critical('Vector SDK Connection Timeout')
@@ -213,11 +216,6 @@ def run_vector_program():
         run_vector_program()
 
 def vector_connect_callback(robot: anki_vector.robot.Robot):
-    robot.behavior.set_eye_color(
-        float(nuConfig.get('eyes', 'hue')),
-        float(nuConfig.get('eyes', 'saturation'))
-    )
-
     global runner
 
     skills = []
@@ -226,7 +224,19 @@ def vector_connect_callback(robot: anki_vector.robot.Robot):
             skills.append(name)
 
     sensors = []
-    ex_sensors = ['BrainSenseSound']
+    ex_sensors = [
+        'BodySenseAirborne',
+        'BodySenseCalm',
+        'BodySenseCharging',
+        'BodySenseCliff',
+        'BodySenseCubeBatteryLow',
+        'BodySenseRobotBatteryLow',
+        'BodySenseTouch',
+        'BodySenseFalling',
+        'BodySenseUserIntent',
+        'BodySenseWakeWord',
+    ]
+
     for skill in skills:
         for sensor in getattr(globals()[skill], 'SUBSCRIPTIONS'):
             if sensor not in sensors:
@@ -265,3 +275,12 @@ def vector_disconnect_callback():
     logger.warning('Stopping Physical Executor')
     runner.stopPhysicalExecutor()
     run_vector_program()
+
+
+def sensorCallbackBodySenseUserIntent(robot, event_type, event, evt):
+    BodySenseUserIntent.publish(str(event))
+    evt.set()
+
+def sensorCallbackBodySenseWakeWord(robot, event_type, event, evt):
+    BodySenseWakeWord.publish(str(event))
+    evt.set()

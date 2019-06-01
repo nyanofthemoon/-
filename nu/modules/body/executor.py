@@ -4,7 +4,8 @@ import time
 import asyncio
 import logging
 from nu import anki_vector
-from nu.anki_vector.util import degrees, distance_inches, distance_mm, speed_mmps, radians
+from nu.anki_vector.util import degrees, distance_inches, speed_mmps, radians
+from anki_vector.connection import ControlPriorityLevel
 from random import SystemRandom, randint
 
 logger = logging.getLogger()
@@ -19,7 +20,6 @@ class Executor:
         self.constitution = 1
         self.energy = 1
         self.happy = 1
-        self.disconnect_cube()
 
     def is_robot_battery_low(self):
         battery_state = self.robot.get_battery_state()
@@ -114,6 +114,53 @@ class Executor:
            return self.robot.behavior.drive_off_charger()
         return None
 
+    def speak_slowly(self, text):
+        self.robot.behavior.say_text(text, 0.5)
+
+    def speak(self, text):
+        self.robot.behavior.say_text(text)
+
+    def speak_fast(self, text):
+        return self.robot.behavior.say_text(text, 1.5)
+
+    def set_eye_color(self, hue, saturation):
+        return self.robot.behavior.set_eye_color(hue, saturation)
+
+    def go_forward(self, inches=1.0, mmps=1.0):
+        return self.robot.behavior.drive_straight(distance_inches(inches), speed_mmps(mmps))
+
+    def go_backwards(self, inches=1.0, mmps=1.0):
+        return self.robot.behavior.drive_straight(distance_inches(inches*-1), speed_mmps(mmps))
+
+    def turn(self, angle):
+        return self.robot.behavior.turn_in_place(degrees(angle))
+
+    def turn_right(self):
+        return self.turn(-90)
+
+    def turn_left(self):
+        return self.turn(90)
+
+    def turn_around(self):
+        return self.turn(180)
+
+    def set_head_angle(self, angle):
+        return self.robot.behavior.set_head_angle(degrees(angle))
+
+    def set_lift_height(self, height):
+        return self.robot.behavior.set_lift_height(height)
+
+    def request_control(self):
+        if self.robot.conn._has_control == False:
+          return self.robot.conn.request_control(ControlPriorityLevel.OVERRIDE_BEHAVIORS_PRIORITY)
+
+    def release_control(self):
+
+        self.robot.conn.requires_behavior_control
+
+        if self.robot.conn._has_control == True:
+          return self.robot.conn.release_control()
+
 
 class ExecutableActions:
     SPEAK_SLOW = 'speak_slowly'
@@ -122,3 +169,10 @@ class ExecutableActions:
     FLASH_CUBE_LIGHTS = 'flash_cube_lights'
     DRIVE_ON_CHARGER = 'drive_on_charger'
     DRIVE_OFF_CHARGER = 'drive_off_charger'
+    SET_EYE_COLOR = 'set_eye_color'
+    GO_FORWARD = 'go_forward'
+    GO_BACKWARD = 'go_backwards'
+    TURN_RIGHT = 'turn_right'
+    TURN_LEFT = 'turn_left'
+    SET_HEAD_ANGLE = 'set_head_angle'
+    SET_LIFT_HEIGHT = 'set_lift_height'

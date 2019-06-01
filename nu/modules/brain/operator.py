@@ -22,6 +22,7 @@ class Operator:
             op_result = None
             op_class = entry.name + 'Skill'
 
+            self.executor.request_control()
             for operation in entry.payload:
                 try:
                     op_action = operation.get('action')
@@ -38,6 +39,7 @@ class Operator:
                         sleep(op_sleep)
                 except Exception as op_ex:
                     logger.warning(str(op_ex))
+            self.executor.release_control()
 
             if op_result != None:
                 if op_result == True:
