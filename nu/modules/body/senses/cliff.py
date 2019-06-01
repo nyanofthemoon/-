@@ -1,4 +1,4 @@
-# Cozmo Cube
+# Vector Cube
 
 from nu.modules.sense import Sense
 

@@ -5,6 +5,7 @@ Contributing to the Vector community! This framework allows cuztomizing the robo
 "All life begins with Nu and ends with Nu. This is the truth! This is my belief! ...At least for now."
 — "The Mystery of Life," vol. 841, chapter 26
 
+
 ## Installation
 
 ### Hardware Dependencies
@@ -13,20 +14,23 @@ Contributing to the Vector community! This framework allows cuztomizing the robo
   - [Sense HAT](https://www.raspberrypi.org/products/sense-hat) add-on board
   - GPS module for Pi USB port
   - Bluetooth module for Pi USB port
+- Wi-fi Network
 
 ### Software Dependencies
 - [Python 3.6.6+](https://www.python.org/downloads)
 - [Redis 4.0](https://redis.io/download)
 - [Vector SDK](https://developer.anki.com/vector/docs/initial.html#initial)
-  - Follow SDK installation process
+  - Follow SDK installation process (account creation is required)
   - Follow Vector Authentication process
     - Keep provided secrets for configuration in a later step
+    - Keep provided certificate for configuration in a later step
 
-### Local
+### Localhost
 - Go to cloned project's root directory
 - `cd nu`
 - `python setup.py install` or `python -m pip install missing_dependency`
 - `git clone git@github.com:anki/vector-python-sdk.git`
+- Move generated certificate into `configs/vector.cert`
 - Configure `configs/nu.ini`'s `sdk` section with obtained secrets
 
 ### Docker
@@ -38,11 +42,13 @@ Contributing to the Vector community! This framework allows cuztomizing the robo
 - `python setup.py install` or `python -m pip install missing_dependency`
 - `git clone git@github.com:anki/vector-python-sdk.git`
 - `cp /home/pi/0M/nu/configs/init.d/0M /etc/init.d`
-- Configure `configs/nu.ini`'s `sdk` section with obtained secrets
+- Move generated certificate into `/home/pi/0M/nu/configs/vector.cert`
+- Configure `/home/pi/0M/nu/configs/nu.ini`'s `sdk` section with obtained secrets
+
 
 ## Usage 
 
-### Local
+### Localhost
 - Place Vector on the charger
 - Launch Redis using `redis-server`
 - `cd` unto 0M project directory
@@ -66,3 +72,9 @@ Contributing to the Vector community! This framework allows cuztomizing the robo
 - Launch project using `systemctl start 0M`
 - Stop using `systemctl stop 0M`
 
+
+## Technical Notes
+
+Brain versus Body "senses" make no logical sense. WTF?
+- Brain sensory data comes from Raspberry Pi 3 and its Sense HAT
+- Body sensory data comes from Vector

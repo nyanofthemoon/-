@@ -1,4 +1,4 @@
-# Cozmo Airborne
+# Vector Airborne
 
 from nu.modules.sense import Sense
 

@@ -1,4 +1,4 @@
-# Cozmo Falling
+# Vector Falling
 
 from nu.modules.sense import Sense
 

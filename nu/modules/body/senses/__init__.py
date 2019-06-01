@@ -1,9 +1,8 @@
 from .airborne import Airborne as BodySenseAirborne
+from .buttonpress import ButtonPress as BodySenseButtonPress
 from .cliff import Cliff as BodySenseCliff
-from .battery import Battery as BodySenseBattery
+from .charging import Charging as BodySenseCharging
+from .cubebatterylow import CubeBatteryLow as BodySenseCubeBatteryLow
 from .falling import Falling as BodySenseFalling
-from .face import Face as BodySenseFace
-from .pet import Pet as BodySensePet
-from .recharging import Recharging as BodySenseRecharging
-from .cube import Cube as BodySenseCube
-from .vision import Vision as BodySenseVision
+from .robotbatterylow import RobotBatteryLow as BodySenseRobotBatteryLow
+from .touch import Touch as BodySenseTouch

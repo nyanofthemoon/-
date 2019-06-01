@@ -19,664 +19,106 @@ class Executor:
         self.constitution = 1
         self.energy = 1
         self.happy = 1
-        #self.disable_freeplay()
-        #self.robot.world.auto_disconnect_from_cubes_at_end()
-        #self.robot.world.disconnect_from_cubes()
-        #self.robot.enable_stop_on_cliff(enable=True)
-        #self.robot.enable_all_reaction_triggers(should_enable=True)
-        #self.set_repair_needs(self.constitution)
-        #self.set_energy_needs(self.energy)
-        #self.set_play_needs(self.happy)
-        #self.use_quiet_voice()
-        #self.become_idle()
-
-    # 0 = 'broken', 1 = 'fully repaired'
-    def set_repair_needs(self, value=1):
-        self.robot.set_needs_levels(value)
-
-    # 0 = 'no-energy', 1 = 'full energy'
-    def set_energy_needs(self, value=1):
-        self.robot.set_needs_levels(value)
-
-    # 0 = 'bored', 1 = 'happy'
-    def set_play_needs(self, value=1):
-        self.robot.set_needs_levels(value)
-
-    def is_charging(self):
-        return self.robot.is_charging
-
-    def is_on_charger(self):
-        return self.robot.is_on_charger
-
-    def read_battery(self):
-        return self.robot.battery_voltage
-
-    def last_seen_image(self):
-        return self.robot.world.latest_image
-
-    def is_airborne(self):
-        return self.robot.is_picked_up
-
-    def is_falling(self):
-        return self.robot.is_falling
-
-    def is_cliff_ahead(self):
-        return self.robot.is_cliff_detected
-
-    def disable_freeplay(self):
-        if self.robot.is_freeplay_mode_active == True:
-            self.robot.stop_freeplay_behaviors()
-            self.robot.enable_facial_expression_estimation(enable=True)
-            self.robot.enable_freeplay_cube_lights(enable=False)
-
-    def enable_freeplay(self):
-        if self.robot.is_freeplay_mode_active == False:
-            self.robot.enable_facial_expression_estimation(enable=False)
-            self.robot.enable_freeplay_cube_lights(enable=True)
-            self.robot.start_freeplay_behaviors()
-
-    def become_asleep(self):
-        self.freeze()
-        self._update_sleep_mood()
-
-    def become_idle(self):
-        self.freeze()
-        self._update_mood()
-        self.do_look_around_at_faces()
-
-    def become_random(self):
-        self.disable_freeplay()
-        self.freeze()
-        self._update_mood()
-        SystemRandom().choice([
-            self.guard,
-            self.fistbump,
-            self.search_for_cube,
-            self.become_idle,
-            self.hiccups,
-            self.enable_freeplay,
-            self.go_to_any_cube,
-            self.do_look_around,
-            self.do_look_for_face,
-            self.sing,
-            self.do_look_around_at_faces,
-            self.rush_to_visible_person,
-            self.go_to_charger,
-            self.look_in_place_for_unknown,
-            self.visit_interesting_edge,
-            self.interact_with_faces,
-            self.knock_over_cubes,
-            self.cube_workout,
-            self.pick_a_cube,
-            self.pick_a_cube_to_stack,
-            self.wheelie,
-            self.pounce_on_motion,
-            self.stack_blocks,
-            self.roll_block_on_side
-        ])()
-
-    def roll_block_on_side(self):
-        self.robot.execute_custom_behavior(97)
-
-    def stack_blocks(self):
-        self.robot.execute_custom_behavior(157)
+        self.disconnect_cube()
 
-    def pounce_on_motion(self):
-        self.robot.execute_custom_behavior(150)
+    def is_robot_battery_low(self):
+        battery_state = self.robot.get_battery_state()
+        return battery_state.battery_level == 1
 
-    def pick_a_cube_to_stack(self):
-        self.robot.execute_custom_behavior(148)
+    def is_cube_battery_low(self):
+        battery_state = self.robot.get_battery_state()
+        return battery_state.cube_battery.level == 1
 
-    def pick_a_cube(self):
-        self.robot.execute_custom_behavior(146)
+    def is_robot_on_charger(self):
+        return self.robot.status.is_on_charger
 
-    def cube_workout(self):
-        self.robot.execute_custom_behavior(140)
+    def is_robot_charging(self):
+        return self.robot.status.is_charging
 
-    def knock_over_cubes(self):
-        self.robot.execute_custom_behavior(143)
+    def is_robot_wheels_moving(self):
+        return self.robot.status.are_wheels_moving
 
-    def interact_with_faces(self):
-        self.robot.execute_custom_behavior(41)
+    def is_robot_playing_animation(self):
+        return self.robot.status.is_animating
 
-    def visit_interesting_edge(self):
-        self.robot.execute_custom_behavior(40)
+    # In someone's hand ; is_robot_stable_to_move will also return False
+    def is_robot_being_held(self):
+        return self.robot.status.is_being_held
 
-    def look_in_place_for_unknown(self):
-        self.robot.execute_custom_behavior(36)
+    # Not in a stable state with threads down
+    def is_robot_stable_enough_to_move(self):
+        return not self.robot.status.is_picked_up
 
-    def fistbump(self):
-        self.robot.execute_custom_behavior(142)
+    def is_robot_button_pressed(self):
+        return self.robot.status.is_button_pressed
 
-    def wheelie(self):
-        self.robot.execute_custom_behavior(149)
+    def is_robot_carrying_cube(self):
+        return self.robot.status.is_carrying_block
 
-    def hiccups(self):
-        self.robot.execute_custom_behavior(30)
+    def has_robot_detected_cliff(self):
+        return self.robot.status.is_cliff_detected
 
-    def guard(self):
-        self.robot.execute_custom_behavior(29)
+    # Docking with cube or charger, etc
+    def is_robot_docking(self):
+        return self.robot.status.is_docking_to_marker
 
-    def sing(self, song=None):
-        if song == None:
-            song = randint(99, 137)
-        self.robot.execute_custom_behavior(song)
+    def is_robot_falling(self):
+        return self.robot.status.is_falling
 
-    def search_for_cube(self):
-        self.robot.execute_custom_behavior(26)
+    def is_robot_moving_head(self):
+        return not self.robot.status.is_head_in_pos
 
-    def acknowledge(self):
-        self.robot.execute_custom_behavior(158)
-        time.sleep(2)
-        self.freeze()
+    def is_robot_moving_lift(self):
+        return not self.robot.status.is_lift_in_pos
 
-    def clear_behavior(self):
-        self.robot._set_none_behavior()
+    # Moving to a locationg
+    def is_robot_pathing(self):
+        return self.robot.status.is_pathing
 
-    def freeze(self):
-        self.robot._set_none_behavior()
-        self.robot.clear_idle_animation()
+    # Sleeping or charging
+    def is_robot_calm(self):
+        return self.robot.status.is_in_calm_power_mode
 
-    # Will dance for duration seconds
-    def dance(self, duration=10):
-        self.robot.execute_custom_behavior(7)
-        time.sleep(duration)
-        self.freeze()
+    # Any motors moving
+    def is_robot_moving(self):
+        return self.robot.status.is_robot_moving
 
-    # Will look at closest face and rush to it, idefinitely.
-    def rush_to_visible_person(self):
-        self.robot.execute_custom_behavior(159)
+    def get_robot_last_touch_data(self):
+        return self.robot.touch.last_sensor_reading
 
-    def speak_slowly(self, text, excited=False):
-        self.robot.say_text(text, in_parallel=True, num_retries=2, voice_pitch=-0.15, duration_scalar=1.25, play_excited_animation=excited).wait_for_completed()
+    def is_robot_being_touched(self):
+        touch_data = self.get_robot_last_touch_data()
+        if touch_data is not None:
+            return touch_data.is_being_touched
+        return False
 
-    def speak(self, text, excited=False):
-        self.robot.say_text(text, in_parallel=True, num_retries=2, play_excited_animation=excited).wait_for_completed()
+    def get_robot_charger(self):
+        return self.robot.world.charger
 
-    def speak_quickly(self, text, excited=False):
-        self.robot.say_text(text, in_parallel=True, num_retries=2, voice_pitch=0.15, duration_scalar=0.75, play_excited_animation=excited).wait_for_completed()
+    def connect_cube(self):
+        return self.robot.world.connect_cube()
 
-    # http://cozmosdk.anki.com/docs/generated/cozmo.anim.html
-    def emote_single(self, type):
-        trigger = getattr(Emote, type)()
-        self.robot.play_anim_trigger(trigger).wait_for_completed(timeout=5)
+    def disconnect_cube(self):
+        return self.robot.world.disconnect_cube()
 
-    def emote_chain(self, type):
-        triggers = getattr(EmoteChain, type)()
-        for trigger in triggers:
-            self.robot.play_anim_trigger(trigger).wait_for_completed(timeout=10)
+    def flash_cube_lights(self):
+        return self.robot.world.flash_cube_lights()
 
-    def set_head_angle(self, angle):
-        self.robot.set_head_angle(degrees(angle)).wait_for_completed(timeout=2)
+    def drive_on_charger(self):
+        if self.is_robot_on_charger() == False:
+            return self.robot.behavior.drive_on_charger()
+        return None
 
-    def set_lift_height(self, height):
-        self.robot.set_lift_height(height).wait_for_completed(timeout=2)
-
-    def turn(self, angle):
-        self.robot.turn_in_place(degrees(angle)).wait_for_completed(timeout=2)
-
-    def turn_right(self):
-        self.turn(-90)
-
-    def turn_left(self):
-        self.turn(90)
-
-    def turn_around(self):
-        self.turn(180)
-
-    def open_lights(self, color='white'):
-        logger.debug('Not implemented')
-        # 'green', 'red', 'blue', 'white'
-        #color = color + '_light'
-        #light = cozmo.lights[color].flash()
-        #self.robot.set_backpack_lights(light1=light, light2=light, light3=light, light4=light, light5=light)
-
-    def close_lights(self):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights_off()
-
-    def open_side_lights(self, color='red'):
-        logger.debug('Not implemented')
-        #light = cozmo.lights[color]
-        #self.robot.set_backpack_lights(light1=light, light5=light)
-
-    def close_side_lights(self):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light1=cozmo.lights.off_light, light5=cozmo.lights.off_light)
-
-    def open_front_light(self, color='white'):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light2=cozmo.lights[color])
-
-    def close_front_light(self):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light2=cozmo.lights.off_light)
-
-    def open_center_light(self,  color='white'):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light3=cozmo.lights[color])
-
-    def close_center_light(self):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light3=cozmo.lights.off_light)
-
-    def open_rear_light(self, color='white'):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light4=cozmo.lights[color])
-
-    def close_rear_light(self):
-        logger.debug('Not implemented')
-        #self.robot.set_backpack_lights(light4=cozmo.lights.off_light)
-
-    def turn_random(self):
-        self.turn(SystemRandom().choice([
-            -90,
-            -180,
-            -270,
-            90,
-            180,
-            270
-        ]))
-
-    def look_up(self):
-        self.set_head_angle(44.5)
-
-    def look_down(self):
-        self.set_head_angle(-25.0)
-
-    def lift_up(self):
-        self.set_lift_height(92.0)
-
-    def lift_down(self):
-        self.set_lift_height(0.0)
-
-    def undock_from_charger(self):
-        if self.is_charging():
-            self.robot.drive_off_charger_contacts(in_parallel=True, num_retries=1).wait_for_completed(timeout=1)
-        if self.is_on_charger():
-            self.robot.drive_straight(distance_inches(4.5), speed_mmps(25), in_parallel=True, num_retries=1).wait_for_completed(timeout=1)
-
-    def move_forward(self, distance=1.0, speed=25):
-        self.robot.drive_straight(distance_inches(distance), speed_mmps(speed)).wait_for_completed(timeout=1)
-
-    def move_backward(self, distance=1.0, speed=25):
-        self.robot.drive_straight(distance_inches((distance*-1)), speed_mmps(speed)).wait_for_completed(timeout=1)
-
-    def go_to_charger(self):
-        if (self.is_on_charger() == False):
-            charger = async_run_until_complete(self._locate_charger())
-            return self._go_to_object(charger)
-        else:
-            return False
-
-    def go_to_any_cube(self):
-        cube = async_run_until_complete(self._locate_any_cube())
-        return self._go_to_object(cube)
-
-    def be_silent(self):
-        self.robot.set_robot_volume(0.0)
-
-    def use_quiet_voice(self):
-        self.robot.set_robot_volume(0.33)
-
-    def use_normal_voice(self):
-        self.robot.set_robot_volume(0.67)
-
-    def use_loud_voice(self):
-        self.robot.set_robot_volume(1.0)
-
-    def last_seen_face(self):
-        last_seen_face = None
-        if self.robot.world.visible_face_count() > 0:
-            visible_faces_iterator = iter(self.robot.world.visible_faces)
-            try:
-                last_seen_face = max(enumerate(visible_faces_iterator))[1]
-            finally:
-                del visible_faces_iterator
-        return last_seen_face
-
-    def last_seen_pet(self):
-        last_seen_pet = None
-        if self.robot.world.visible_pet_count() > 0:
-            visible_pets_iterator = iter(self.robot.world.visible_pets)
-            try:
-                last_seen_pet = max(enumerate(visible_pets_iterator))[1]
-            finally:
-                del visible_pets_iterator
-        return last_seen_pet
-
-    def do_look_around(self):
-        logger.debug('Not implemented')
-        #return self.robot.start_behavior(cozmo.behavior.BehaviorTypes.LookAroundInPlace)
-
-    def do_look_for_face(self):
-        logger.debug('Not implemented')
-        #return self.robot.start_behavior(cozmo.behavior.BehaviorTypes.FindFaces)
-
-    # Will look around and look at faces, indefinitely.
-    def do_look_around_at_faces(self):
-        self.robot.execute_custom_behavior(27)
-
-    def _update_mood(self):
-        happy = self.happy
-        energy = self.energy
-        constitution = self.constitution
-        animation = Emote.idle()
-        #if constitution < 0.5:
-            #animation = cozmo.anim.Triggers.NeedsSevereLowRepairIdle
-        #if energy < 0.5:
-            #animation = cozmo.anim.Triggers.NeedsSevereLowRepairIdle
-        #if happy < 0.5:
-            #animation = cozmo.anim.Triggers.NothingToDoBoredIdle
-        self.robot.set_idle_animation(animation)
-
-    def _update_sleep_mood(self):
-        self.robot.set_idle_animation(Emote.sleep())
-
-    def constitution(self):
-        return self.constitution
-
-    def update_constitution(self, amount: 0.25):
-        self.set_repair_needs( (self.constitution + amount) )
-        self._update_mood()
-
-    def energy(self):
-        return self.energy
-
-    def update_energy(self, amount: 0.25):
-        self.set_energy_needs( (self.energy + amount) )
-        self._update_mood()
-
-    def happiness(self):
-        return self.happy
-
-    def update_happiness(self, amount: 0.25):
-        self.set_play_needs( (self.happy + amount) )
-        self._update_mood()
-
-    ###
-    def dock_and_recharge(self):
-        if self.go_to_charger():
-            self.turn_around()
-            async_run_until_complete(self.robot.backup_onto_charger(max_drive_time=10))
-        return self.robot.is_charging
-
-    def _turn_towards_face(self, face):
-        try:
-            self.robot.turn_towards_face(face).wait_for_completed(timeout=10)
-            return True
-        except:
-            return False
-
-    async def _locate_face(self, face):
-        located = False
-        find_face = self.do_look_for_face()
-        for retry in range(3):
-            try:
-                visible_face = await self.robot.world.wait_for_observed_face(timeout=10)
-                if visible_face.face_id == face.face_id:
-                    located = True
-                    break
-            except:
-                pass
-        find_face.stop()
-        return located
-
-    async def _locate_any_face(self):
-        find_face = self.do_look_for_face()
-        try:
-            face = await self.robot.world.wait_for_observed_face(timeout=25)
-        finally:
-            find_face.stop()
-            return face
-
-    async def _locate_any_pet(self):
-        find_pet = self.do_look_for_face()
-        try:
-            pet = await self.robot.world.wait_for_observed_pet(timeout=25)
-        finally:
-            find_pet.stop()
-            return pet
-
-    async def _locate_any_cube(self):
-        find_cube = self.do_look_around()
-        try:
-            cube = await self.robot.world.wait_for_observed_light_cube(timeout=25)
-        finally:
-            find_cube.stop()
-            return cube
-
-    async def _locate_charger(self, charger=None):
-        self.set_head_angle(0)
-        self.set_lift_height(0)
-        look_around = self.do_look_around()
-        try:
-            charger = await self.robot.world.wait_for_observed_charger(timeout=25)
-        finally:
-            look_around.stop()
-            return charger
-
-    def _go_to_object(self, observed):
-        if observed != None:
-            self.robot.go_to_object(observed, distance_mm(70.0)).wait_for_completed(timeout=20)
-            return True
-        else:
-            return False
-
-
-def async_run_until_complete(coroutine):
-    loop = None
-    result = None
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    try:
-        done, pending = loop.run_until_complete(asyncio.wait([asyncio.ensure_future(coroutine)]))
-        for future in done:
-            result = future.result()
-    finally:
-        loop.close()
-        return result
+    def drive_off_charger(self):
+        if self.is_robot_on_charger() == True:
+           return self.robot.behavior.drive_off_charger()
+        return None
 
 
 class ExecutableActions:
     SPEAK_SLOW = 'speak_slowly'
     SPEAK = 'speak'
-    SPEAK_FAST = 'speak_quickly'
-    EMOTE_SINGLE = 'emote_single'
-    EMOTE_CHAIN = 'emote_chain'
-    MOVE_HEAD = 'set_head_angle'
-    MOVE_LIFT = 'set_lift_height'
-    LOOK_UP = 'look_up'
-    LOOK_DOWN = 'look_down'
-    LIFT_UP = 'lift_up'
-    LIFT_DOWN = 'lift_dow'
-    MOVE_FORWARD = 'move_forward'
-    MOVE_BACKWARD = 'move_backward'
-    TURN = 'turn'
-    TURN_AROUND = 'turn_around'
-    TURN_RIGHT = 'turn_right'
-    TURN_LEFT = 'turn_left'
-    TURN_RANDOM = 'turn_random'
-    UNDOCK_FROM_CHARGER = 'undock_from_charger'
-    DOCK_AND_RECHARGE = 'dock_and_recharge'
-    GO_TO_CHARGER = 'go_to_charger'
-    GO_TO_ANY_CUBE = 'go_to_any_cube'
-    OPEN_LIGHTS = 'open_lights'
-    CLOSE_LIGHTS = 'close_lights'
-    OPEN_FRONT_LIGHT = 'open_front_light'
-    CLOSE_FRONT_LIGHT = 'close_front_light'
-    OPEN_CENTER_LIGHT = 'open_center_light'
-    CLOSE_CENTER_LIGHT = 'close_center_light'
-    OPEN_REAR_LIGHT = 'open_rear_light'
-    CLOSE_REAR_LIGHT = 'close_rear_light'
-    OPEN_WARNING_LIGHTS = 'open_side_lights'
-    CLOSE_WARNING_LIGHTS = 'close_side_lights'
-    BE_SILENT = 'be_silent'
-    USE_QUIET_VOICE = 'use_quiet_voice'
-    USE_NORMAL_VOICE = 'use_normal_voice'
-    USE_LOUD_VOICE = 'use_loud_voice'
-    DO_LOOK_AROUND = 'do_look_around'
-    DO_LOOK_FOR_PERSON = 'do_look_for_face'
-    DO_LOOK_AROUND_AT_PEOPLE = 'do_look_around_at_faces'
-    ENABLE_FREEPLAY = 'enable_freeplay'
-    DISABLE_FREEPLAY = 'disable_freeplay'
-    ACKNOWLEDGE = 'acknowledge'
-    DANCE = 'dance'
-    FREEZE = 'freeze'
-    RUSH_TO_VISIBLE_PERSON = 'rush_to_visible_person'
-    HICCUPS = 'hiccups'
-    BECOME_IDLE = 'become_idle'
-    BECOME_ASLEEP = 'become_asleep'
-    BECOME_RANDOM = 'become_random'
-    UPDATE_CONSTITUTION = 'update_constitution'
-    UPDATE_ENERGY = 'update_energy'
-    UPDATE_HAPPINESS = 'update_happiness'
-    CLEAR_BEHAVIOR = 'clear_behavior'
-    SING = 'sing'
-
-
-class ExecutableSingleEmotes:
-    UPSET = 'upset'
-    ANNOYED = 'annoyed'
-    CURIOUS = 'curious'
-    HAPPY = 'happy'
-    EXCITED = 'excited'
-    UNHAPPY = 'unhappy'
-    SURPRISED = 'surprised'
-    SCARED = 'scared'
-    BORED = 'bored'
-    IDLE = 'idle'
-    TIRED = 'tired'
-    WAKEUP = 'wake_up'
-    SLEEP = 'sleep'
-
-class ExecutableChainEmotes:
-    FALL_ASLEEP = 'fall_asleep'
-
-class EmoteChain:
-
-    @staticmethod
-    def fall_asleep():
-        return [
-            SystemRandom().choice([
-                #cozmo.anim.Triggers.GoToSleepGetIn,
-                #cozmo.anim.Triggers.StartSleeping,
-                #cozmo.anim.Triggers.GoToSleepSleeping
-            ]),
-            SystemRandom().choice([
-                #cozmo.anim.Triggers.CodeLabSleep,
-                #cozmo.anim.Triggers.GuardDogSleepLoop,
-                #cozmo.anim.Triggers.Sleeping
-            ])
-        ]
-
-
-class Emote:
-
-    @staticmethod
-    def annoyed():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabFrustrated,
-            #cozmo.anim.Triggers.CozmoSaysBadWord,
-            #cozmo.anim.Triggers.CubeMovedUpset,
-        ])
-
-    @staticmethod
-    def upset():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.MajorFail,
-            #cozmo.anim.Triggers.FrustratedByFailureMajor,
-            #cozmo.anim.Triggers.CozmoSaysBadWord,
-            #cozmo.anim.Triggers.FrustratedByFailure
-        ])
-
-    @staticmethod
-    def curious():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabThinking,
-            #cozmo.anim.Triggers.CodeLabWondering,
-            #cozmo.anim.Triggers.CodeLabCurious
-        ])
-
-    @staticmethod
-    def excited():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.MajorWin,
-            #cozmo.anim.Triggers.CodeLabExcited,
-        ])
-
-    @staticmethod
-    def happy():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabWin,
-            #cozmo.anim.Triggers.CodeLabHappy,
-            #cozmo.anim.Triggers.CodeLabReactHappy,
-            #cozmo.anim.Triggers.DriveLoopHappy
-        ])
-
-    @staticmethod
-    def surprised():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabSurprise,
-            #cozmo.anim.Triggers.CodeLabWhoa,
-            #cozmo.anim.Triggers.OnSawNewNamedFace,
-            #cozmo.anim.Triggers.OnSawNewUnnamedFace
-        ])
-
-    @staticmethod
-    def scared():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabWhew
-        ])
-
-    @staticmethod
-    def unhappy():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabUnhappy
-        ])
-
-    @staticmethod
-    def bored():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabBored,
-            #cozmo.anim.Triggers.CodeLabChatty,
-            #cozmo.anim.Triggers.NothingToDoBoredEvent
-        ])
-
-    @staticmethod
-    def idle():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.DroneModeIdle,
-            #cozmo.anim.Triggers.CodeLabStaring,
-            #cozmo.anim.Triggers.IdleOnCharger,
-            #cozmo.anim.Triggers.CozmoSaysIdle,
-            #cozmo.anim.Triggers.InteractWithFaceTrackingIdle,
-            #cozmo.anim.Triggers.SparkIdle
-        ])
-
-    @staticmethod
-    def tired():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.ConnectWakeUp_SevereEnergy,
-            #cozmo.anim.Triggers.ConnectWakeUp_SevereRepair
-        ])
-
-    @staticmethod
-    def sleep():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.CodeLabSleep,
-            #cozmo.anim.Triggers.GuardDogSleepLoop,
-            #cozmo.anim.Triggers.Sleeping
-        ])
-
-    @staticmethod
-    def wake_up():
-        return SystemRandom().choice([
-            #cozmo.anim.Triggers.GoToSleepGetOut,
-            #cozmo.anim.Triggers.GoToSleepOff,
-            #cozmo.anim.Triggers.ConnectWakeUp,
-            #cozmo.anim.Triggers.VC_StartledWakeup
-        ])
+    SPEAK_FAST = 'speak_fast'
+    FLASH_CUBE_LIGHTS = 'flash_cube_lights'
+    DRIVE_ON_CHARGER = 'drive_on_charger'
+    DRIVE_OFF_CHARGER = 'drive_off_charger'

@@ -1,6 +1,5 @@
 build
 dist
-0M.egg-info
 dump.rdb
 log.txt
 nu/configs/vector.cert
@@ -14,4 +13,3 @@ nu/modules/brain/senses/text2speech/__pycache__
 nu/modules/query/__pycache__
 nu/modules/skills/__pycache__
 nu/modules/skills/obedience/__pycache__/
-nu/vector-python-sdk
