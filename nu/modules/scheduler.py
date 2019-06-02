@@ -1,25 +1,25 @@
 # Periodic Scheduler
 
-import sched
-from time import time, sleep
+import asyncio
+
+async def Task(interval, action, actionargs):
+    while True:
+        await action(*actionargs)
+        await asyncio.sleep(interval)
 
 class Scheduler:
 
     def __init__(self):
-        self.tasks = {}
-        self.scheduler = sched.scheduler(time, sleep)
-
-    def add(self, interval, action, actionargs=()):
-        action(*actionargs)
-        id = self.scheduler.enter(interval, 1, self.add, (interval, action, actionargs))
-        self.tasks.update({action: id})
+        self.tasks = []
 
     def start(self):
-        self.scheduler.run()
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        self.loop = asyncio.get_event_loop()
+        self.loop.run_until_complete(asyncio.wait(self.tasks))
+
+    def add(self, interval, action, actionargs=()):
+        self.tasks.append( Task(interval, action, actionargs) )
 
     def stop(self):
-        for action, id in self.tasks:
-            self.remove(id)
-
-    def remove(self, uid):
-        self.scheduler.cancel(uid)
+        self.tasks = {}
+        self.loop.close()

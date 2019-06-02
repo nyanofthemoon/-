@@ -27,6 +27,9 @@ class Debug:
         data = str(literal_eval(message.get('data').decode('utf-8'))).lower()
         if channel == senses.BodySenseTouch.id():
             if True == strtobool(data):
+                payload = Skill.payload()
+                payload.append(Skill.message(ExecutableActions.SPEAK_FAST, {'text': 'Touched!'}))
+                Skill.enqueue(__class__, payload)
                 logger.debug('Touched!')
         elif channel == senses.BodySenseAirborne.id():
             if True == strtobool(data):

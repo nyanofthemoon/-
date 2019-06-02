@@ -14,7 +14,7 @@ class Operator:
     def __init__(self, executor: Executor):
         self.executor = executor
 
-    def handle_entry(self, entry: SMemoryEntry):
+    async def handle_entry(self, entry: SMemoryEntry):
         if entry.expiry >= time():
 
             logger.info('Operator running ' + str(entry.name) + ' with updates')
@@ -22,7 +22,7 @@ class Operator:
             op_result = None
             op_class = entry.name + 'Skill'
 
-            self.executor.request_control()
+            await self.executor.request_control()
             for operation in entry.payload:
                 try:
                     op_action = operation.get('action')
@@ -30,16 +30,16 @@ class Operator:
                     op_sleep = operation.get('sleep')
                     if op_params != {}:
                         logger.debug('Operator executing ' + op_action + ' using ' + str(op_params))
-                        op_result = getattr(self.executor, op_action)(**op_params)
+                        op_result = await getattr(self.executor, op_action)(**op_params)
                     else:
                         logger.debug('Operator executing ' + op_action)
-                        op_result = getattr(self.executor, op_action)()
+                        op_result = await getattr(self.executor, op_action)()
                     if op_sleep > 0:
                         logger.debug('Operator sleeping for ' + str(op_sleep) + ' seconds...')
                         sleep(op_sleep)
                 except Exception as op_ex:
                     logger.warning(str(op_ex))
-            self.executor.release_control()
+            await self.executor.release_control()
 
             if op_result != None:
                 if op_result == True:

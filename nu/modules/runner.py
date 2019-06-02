@@ -1,5 +1,6 @@
 # Runner
 
+import asyncio
 import logging
 import threading
 from distutils.util import strtobool
@@ -43,7 +44,7 @@ class Runner:
         self.audioData = None
         self.scheduler = Scheduler()
 
-    def scheduleTasks(self, sensors=[], exclusions=[]):
+    async def scheduleTasks(self, sensors=[], exclusions=[]):
         for sensor in sensors:
             if sensor not in exclusions:
               self.scheduler.add(int(senseConfig.get('refresh', sensor)), getattr(globals()[sensor], 'publish'))
@@ -71,44 +72,44 @@ class Runner:
     def stopLongTermMemory(self):
         return True
 
-    def _sensorCallbackBodySenseAirborne(self):
-        is_airborne = not self.executor.is_robot_stable_enough_to_move()
+    async def _sensorCallbackBodySenseAirborne(self):
+        is_airborne = not await self.executor.is_robot_stable_enough_to_move()
         if is_airborne == True:
           BodySenseAirborne.publish(True)
-    def _sensorCallbackBodySenseButtonPressed(self):
-        is_robot_button_pressed = self.executor.is_robot_button_pressed()
+    async def _sensorCallbackBodySenseButtonPressed(self):
+        is_robot_button_pressed = await self.executor.is_robot_button_pressed()
         if is_robot_button_pressed == True:
             BodySenseButtonPress.publish(True)
-    def _sensorCallbackBodySenseCalm(self):
-        is_robot_calm = self.executor.is_robot_calm()
+    async def _sensorCallbackBodySenseCalm(self):
+        is_robot_calm = await self.executor.is_robot_calm()
         if is_robot_calm == True:
             BodySenseCalm.publish(True)
-    def _sensorCallbackBodySenseCharging(self):
-        is_robot_charging = self.executor.is_robot_charging()
+    async def _sensorCallbackBodySenseCharging(self):
+        is_robot_charging = await self.executor.is_robot_charging()
         if is_robot_charging == True:
             BodySenseCharging.publish(True)
-    def _sensorCallbackBodySenseCliff(self):
-        has_robot_detected_cliff = self.executor.has_robot_detected_cliff()
+    async def _sensorCallbackBodySenseCliff(self):
+        has_robot_detected_cliff = await self.executor.has_robot_detected_cliff()
         if has_robot_detected_cliff == True:
             BodySenseCliff.publish(True)
-    def _sensorCallbackBodySenseCubeBatteryLow(self):
-        is_cube_battery_low = self.executor.is_cube_battery_low()
+    async def _sensorCallbackBodySenseCubeBatteryLow(self):
+        is_cube_battery_low = await self.executor.is_cube_battery_low()
         if is_cube_battery_low == True:
             BodySenseCubeBatteryLow.publish(True)
-    def _sensorCallbackBodySenseRobotBatteryLow(self):
-        is_robot_battery_low = self.executor.is_robot_battery_low()
+    async def _sensorCallbackBodySenseRobotBatteryLow(self):
+        is_robot_battery_low = await self.executor.is_robot_battery_low()
         if is_robot_battery_low == True:
             BodySenseRobotBatteryLow.publish(True)
-    def _sensorCallbackBodySenseTouch(self):
-        is_being_touched = self.executor.is_robot_being_touched()
+    async def _sensorCallbackBodySenseTouch(self):
+        is_being_touched = await self.executor.is_robot_being_touched()
         if is_being_touched == True:
             BodySenseTouch.publish(True)
-    def _sensorCallbackBodySenseFalling(self):
-        is_robot_falling = self.executor.is_robot_falling()
+    async def _sensorCallbackBodySenseFalling(self):
+        is_robot_falling = await self.executor.is_robot_falling()
         if is_robot_falling == True:
             BodySenseFalling.publish(True)
 
-    def bindSensoryCallback(self, robot: anki_vector.robot.AsyncRobot, sensors):
+    async def bindSensoryCallback(self, robot: anki_vector.robot.AsyncRobot, sensors):
         sensoryEvent = threading.Event()
         if 'BodySenseAirborne' in sensors:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseAirborne')), self._sensorCallbackBodySenseAirborne)
@@ -169,12 +170,12 @@ class Runner:
 logger = logging.getLogger()
 runner = None
 
-def main_function():
+async def main_function():
     global runner
     runner = Runner()
-    run_vector_program()
+    await run_vector_program()
 
-def run_vector_program():
+async def run_vector_program():
     logger.info('Contacting Vector SDK')
     try:
         config = {
@@ -185,7 +186,7 @@ def run_vector_program():
         showVisionViewer = strtobool(runnerConfig.get('options', 'ShowVision'))
         showNavigationViewer = strtobool(runnerConfig.get('options', 'ShowNavigationMap'))
 
-        robot = anki_vector.Robot(
+        robot = anki_vector.AsyncRobot(
             serial=nuConfig.get('sdk', 'serial'),
             ip=nuConfig.get('sdk', 'ip'),
             config=config,
@@ -201,7 +202,7 @@ def run_vector_program():
             show_3d_viewer=showNavigationViewer,
         )
         robot.connect()
-        vector_connect_callback(robot)
+        await vector_connect_callback(robot)
 
     except anki_vector.exceptions.VectorConnectionException as e:
         logger.critical('Vector SDK Connection Timeout')
@@ -215,7 +216,7 @@ def run_vector_program():
         sleep(1.5)
         run_vector_program()
 
-def vector_connect_callback(robot: anki_vector.robot.AsyncRobot):
+async def vector_connect_callback(robot: anki_vector.robot.AsyncRobot):
     global runner
 
     skills = []
@@ -253,10 +254,10 @@ def vector_connect_callback(robot: anki_vector.robot.AsyncRobot):
     runner.startShortTermMemory()
     logger.info('Finding Required Sensors ' + str(sensors))
     logger.info('Excluding Sensors ' + str(ex_sensors))
-    runner.bindSensoryCallback(robot, sensors)
+    await runner.bindSensoryCallback(robot, sensors)
     runner.bindMessageCallback(skills)
     logger.info('Initializing Skills ' + str(skills))
-    runner.scheduleTasks(sensors, ex_sensors)
+    await runner.scheduleTasks(sensors, ex_sensors)
     runner.startScheduledTasks()
 
 

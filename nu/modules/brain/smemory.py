@@ -1,9 +1,15 @@
 # Short-term memory (PriorityQueue)
 
+import logging
+
+import asyncio
 import redis
 from queue import PriorityQueue
-from threading import Thread
+#from threading import Thread
 from nu.modules.config import smemory_config
+
+
+logger = logging.getLogger()
 
 class SMemoryStorageManager():
 
@@ -45,19 +51,24 @@ class SMemoryEntry:
 class SMemoryQueueManager:
 
     def __init__(self):
-        self.queue = PriorityQueue()
+        self.queue = asyncio.PriorityQueue()
         self.queueThread = None
 
-    def start(self, callback):
-        self.queueThread = Thread(target=self.processEntry, args=(self.queue, callback), daemon=True)
-        self.queueThread.start()
-        self.queue.join()
-
-    def processEntry(self, queue, callback):
+    async def start(self, callback):
         while True:
-            next = queue.get()
-            callback(next)
-            queue.task_done()
+            entry = await self.queue.get()
+            logger.debug('GOT ENTRY')
+            await self.processEntry(entry, callback)
+            logger.debug('DONE WITH ENTRY')
+            self.queue.task_done()
+
+    async def processEntry(self, entry, callback):
+        logger.debug('PROCESSINF ENTRY')
+        logger.debug(str(entry))
+        await callback(entry)
+        #self.queueThread = Thread(target=self.processEntry, args=(self.entry, callback), daemon=True)
+        #self.queueThread.start()
+        #self.queue.join()
 
     def stop(self):
         self.thread._stop()
