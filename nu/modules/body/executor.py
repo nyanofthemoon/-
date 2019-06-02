@@ -13,7 +13,7 @@ logger = logging.getLogger()
 
 class Executor:
 
-    def __init__(self, robot: anki_vector.robot.Robot):
+    def __init__(self, robot: anki_vector.robot.AsyncRobot):
         self.robot = robot
 
     def reset(self):

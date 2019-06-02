@@ -108,7 +108,7 @@ class Runner:
         if is_robot_falling == True:
             BodySenseFalling.publish(True)
 
-    def bindSensoryCallback(self, robot: anki_vector.robot.Robot, sensors):
+    def bindSensoryCallback(self, robot: anki_vector.robot.AsyncRobot, sensors):
         sensoryEvent = threading.Event()
         if 'BodySenseAirborne' in sensors:
             self.scheduler.add(int(senseConfig.get('refresh', 'BodySenseAirborne')), self._sensorCallbackBodySenseAirborne)
@@ -157,7 +157,7 @@ class Runner:
         self.operator = None
         return True
 
-    def startPhysicalExecutor(self, robot: anki_vector.robot.Robot):
+    def startPhysicalExecutor(self, robot: anki_vector.robot.AsyncRobot):
         self.executor = Executor(robot)
         self.executor.reset()
         return True
@@ -215,7 +215,7 @@ def run_vector_program():
         sleep(1.5)
         run_vector_program()
 
-def vector_connect_callback(robot: anki_vector.robot.Robot):
+def vector_connect_callback(robot: anki_vector.robot.AsyncRobot):
     global runner
 
     skills = []
